@@ -1,0 +1,68 @@
+﻿<Window x:Class="FileManWPF.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="MainWindow" Height="651.493" Width="1044.403">
+
+    <Grid Name="ParentGrid" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="1*" />
+        </Grid.ColumnDefinitions>
+        
+        <Grid Name="ActionGrid" Grid.Column="1" Grid.Row="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Grid Name="SaveFileGrid">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="7*"/>
+                    <ColumnDefinition Width="3*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="22"/>
+                    <RowDefinition Height="2"/>
+                    <RowDefinition Height="22"/>
+                    <RowDefinition Height="2"/>
+                    <RowDefinition Height="22"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Hello" FontSize="14" />
+                <Button x:Name="btnSave" Grid.Row="0" Grid.Column="1" Click="btnSave_Click">Save</Button>
+                
+                <TextBlock Name="txtBlckA" Grid.Row="2" Grid.Column="0" Text="FileA" FontSize="14"/>
+                <Button x:Name="btnFileASelect" Grid.Row="2" Grid.Column="1" Click="btnFileASelect_Click">FA Open</Button>
+
+                <TextBlock Name="txtBlckB" Grid.Row="4" Grid.Column="0" Text="FileB" FontSize="14"/>
+                <Button x:Name="btnFileBSelect" Grid.Row="4" Grid.Column="1" Click="btnFileBSelect_Click">FB Open</Button>
+            </Grid>
+            
+        </Grid>
+        
+        
+
+        <Grid Name="topGrid" Grid.Row="0" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#FF11ECD8" ShowGridLines="True">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <DataGrid Name="resultFileGrid" Grid.Row="0" Grid.Column="0">
+                <Data
+
+            </DataGrid>
+        </Grid>
+        <Grid Name="bottomParentGrid" Grid.Row="1" Grid.Column="0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+            <Grid Grid.Column="0" Grid.Row="0" Name="fileAGrid" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" MinHeight="100" Background="Black"/>
+            <Grid Grid.Column="1" Grid.Row="0" Name="fileBGrid" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" MinHeight="100" Background="#FF0EF00E"></Grid>
+        </Grid>
+    </Grid>
+</Window>
