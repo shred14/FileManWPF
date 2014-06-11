@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using System.Windows;
+using System.Collections.ObjectModel;
 
 namespace FileManWPF {
     class RawFile{
@@ -11,14 +13,18 @@ namespace FileManWPF {
         private List<int> _exclusionList;
         private List<int> _idColumnsList;//the column indices that will be unique identifiers for compilation file(so they can map to each other)
         private char _separator = ',';
-        private List<string> _dataTypes;
+        private Dictionary<string,bool> _headers;
+        private bool _hasHeaders;
 
         #region Constructors
 
-        public RawFile(String path) {
+        public RawFile(String path, bool hasHeaders) {
             _path = path;
             _exclusionList = new List<int>();
             _idColumnsList = new List<int>();
+            _hasHeaders = hasHeaders;
+            _headers = new Dictionary<string, bool>();
+            getHeaders();
         }
 
         #endregion
@@ -32,8 +38,19 @@ namespace FileManWPF {
             set{_separator = value;}
         }
 
+        public Dictionary<String,bool> Headers {
+            get { return _headers; }
+            set { _headers = value; }
+        }
+
+        public bool HasHeader {
+            get { return _hasHeaders; }
+        }
+
         public List<int> ExclusionList {
-            get { return _exclusionList; }
+            get {
+                return _exclusionList;
+            }
             set { _exclusionList = value; }
         }
 
@@ -45,42 +62,11 @@ namespace FileManWPF {
         #endregion
 
 
-        #region Methods to manipulate properties
-
-        public void addIDColumnNumber(int n) {
-            if (n < 0)
-                throw new ArgumentException();
-
-            _idColumnsList.Add(n);
-        }
-
-        public void addExclusion(int n) {
-            if (n < 0)
-                throw new ArgumentException();
-
-            _exclusionList.Add(n);
-        }
-
-        #endregion
-
-
-        public StreamReader GetReader() {
+        public TextReader GetReader() {
             return new StreamReader(_path);
         }
 
-        public List<List<String>> GetSample(int size) {
-            List<List<String>> result = new List<List<string>>();
-            StreamReader reader = GetReader();
-
-            while (!reader.EndOfStream && result.Count != size) {
-                string line = reader.ReadLine();
-                string[] data = line.Split(_separator);
-                result.Add(data.ToList<String>());
-            }
-
-
-            return result;
-        }
+       
 
         public string GenerateID(string s) {
             
@@ -100,17 +86,46 @@ namespace FileManWPF {
 
         }
 
+        public void parseAndSetID(String s) {
+            String[] data = s.Split(',');
+
+            foreach(String entry in data){
+                int n = int.Parse(entry);
+                _idColumnsList.Add(n);
+            }
+        }
+
+        public List<string> GetResultHeaders() {
+            List<string> result = new List<string>();
+            for (int index = 0; index < _headers.Count; index++) {
+                var item = _headers.ElementAt(index);
+                if (item.Value == true) {
+                    result.Add(item.Key);
+                }
+            }
+            return result;
+        }
+
         public string GenerateResult(string s) {
             if (s == null)
                 throw new ArgumentNullException();
             else if (s.Length == 0)
                 throw new ArgumentException();
 
+            List<int> result = new List<int>();
+            for (int index = 0; index < _headers.Count; index++) {
+                var item = _headers.ElementAt(index);
+                if (item.Value == false) {
+                    result.Add(index);
+                }
+                this._exclusionList = result;
+            }
+
             StringBuilder sb = new StringBuilder();
             string[] splitInfo = s.Split(_separator);
 
             for (int i = 0; i < splitInfo.Length; i++) {
-                if (!_exclusionList.Contains(i)) {
+                if (!this.ExclusionList.Contains(i)) {
                     if (sb.Length > 0) {
                         sb.Append(_separator);
                     }
@@ -122,48 +137,58 @@ namespace FileManWPF {
             return sb.ToString();
         }
 
+        private void getHeaders() {
 
-        private List<String> DetermineDataTypes() {
-            List<String> result = new List<String>();
+            if (!_hasHeaders)
+                return;
+            TextReader reader = GetReader();
+            String line = reader.ReadLine();
+            List<String> headers = line.Split(_separator).ToList<String>();
+            headers.ForEach(
+                delegate(String header) {
+                    _headers[header] = true;
+                });
+            reader.Close();
+        }
 
-            try {
-                StreamReader reader = new StreamReader(_path);
+        public List<List<String>> GetPreview(int numOfRecords) {
+            List<List<String>> result = new List<List<String>>();
+            TextReader reader = GetReader();
 
-                while (!reader.EndOfStream) {
-                    String line = reader.ReadLine();
-                    string[] data = line.Split(_separator);
+            if (HasHeader)
+                reader.ReadLine();
 
-                    if (result.Count == 0) {
-                        result = new List<string>(data.Length);
-                    }
+            while (reader.Peek() != -1 && result.Count < numOfRecords) {
+                String line = reader.ReadLine();
+                String[] data = line.Split(_separator);
 
-                    for (int i = 0; i < data.Length; i++) {
-                        string s = data[i];
-                        double attempt = 0.0;
-                        bool isANumber = double.TryParse(s, out attempt);
-
-                        if (!isANumber) {
-                            if (result[i] == "numeric" || result[i] == "") {
-                                result[i] = "nominal";
-                            }
-                        }
-                        else {
-                            if (result[i] == "") {
-                                result[i] = "numeric";
-                            }
-                        }
-                    }
-                }
-                reader.Close();
-            }
-            catch (IOException ex) {
-                System.Console.Error.WriteLine("IO Error occured in " + ex.Source + Environment.NewLine
-                    + ex.Message + Environment.NewLine +
-                    "Stack Trace:" + Environment.NewLine
-                    + ex.StackTrace);
+                result.Add(data.ToList<String>());
             }
 
+            reader.Close();
             return result;
+        }
+
+        public ObservableCollection<object> GetDataPreview(int numOfRecords) {
+            ObservableCollection<object> result = new ObservableCollection<object>();
+
+            List<List<String>> preview = GetPreview(5);
+            List<String> headers = GetHeaders();
+
+            foreach (List<String> line in preview) {
+                dynamic dd = new BindableDynamicDictionary();
+                for (int i = 0; i < headers.Count; i++) {
+                    String header = headers[i];
+                    dd[header] = line[i];
+                }
+
+                result.Add(dd);
+            }
+            return result;
+        }
+
+        public List<String> GetHeaders() {
+            return this.Headers.Keys.ToList();
         }
     }
 }

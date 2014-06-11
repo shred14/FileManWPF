@@ -1,0 +1,6 @@
+name,age,city
+bob,21,wellington
+jane,32,gisborne
+john,12,auckland
+janet,40,christchurch
+duncan,43,north shore

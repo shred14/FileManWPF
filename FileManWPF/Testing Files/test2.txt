@@ -1,0 +1,6 @@
+name,sex,Ranum
+bob,male,6
+jane,female,7
+john,male,2
+janet,female,7
+duncan,male,9
