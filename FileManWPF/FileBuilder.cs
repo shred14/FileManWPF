@@ -12,6 +12,7 @@ namespace FileManWPF {
         List<String> _finalFileData;
         Dictionary<String,List<int>> _sourceFiles;// the key is the path, the value is the column exclusion list
         RawFile _fileA, _fileB;
+        ObservableCollection<object> _resultFilePreview;
         char _separator;
         ObservableCollection<object> _fileADataPreview, _fileBDataPreview;
 
@@ -21,6 +22,7 @@ namespace FileManWPF {
             _separator = ',';
             _fileADataPreview = new ObservableCollection<object>();
             _fileBDataPreview = new ObservableCollection<object>();
+            _resultFilePreview = new ObservableCollection<object>();
         }
 
         public FileBuilder(char sep){
@@ -33,7 +35,8 @@ namespace FileManWPF {
 
         public RawFile FileA {
             get { return _fileA; }
-            set { _fileA = value;
+            set { 
+                _fileA = value;
                    _fileADataPreview = _fileA.GetDataPreview(5);
                 }
         }
@@ -53,6 +56,10 @@ namespace FileManWPF {
             get { return _fileBDataPreview;}
         }
 
+        public ObservableCollection<object> ResultFilePreview {
+            get { return _resultFilePreview; }
+        }
+
         public void ManageExclusionChange(string content, bool include) {
 
 
@@ -70,7 +77,60 @@ namespace FileManWPF {
                 MessageBox.Show("There was a problem in changing the exclusion");
             }
         }
-        
+
+        public void GenerateResultFilePreview(int numOfRecords) {
+            _resultFilePreview.Clear();
+            try {
+                TextReader readerFileA = _fileA.GetReader();
+
+
+                if (_fileA.HasHeader)
+                    readerFileA.ReadLine();
+
+                List<string> headers = _fileA.GetResultHeaders("A");
+                headers.AddRange(_fileB.GetResultHeaders("B"));
+                List<String> ids = new List<string>();
+
+                while (readerFileA.Peek() != -1) {
+
+                    string lineA = readerFileA.ReadLine();
+
+                    string idA = _fileA.GenerateID(lineA);
+                    TextReader readerFileB = _fileB.GetReader();
+
+                    if (_fileB.HasHeader)
+                        readerFileB.ReadLine();
+
+                    while (readerFileB.Peek() != -1) {
+                        string lineB = readerFileB.ReadLine();
+                        string idB = _fileB.GenerateID(lineB);
+                        if (idA == idB) {
+                            dynamic dd = new BindableDynamicDictionary();
+                            string line = _fileA.GenerateResult(lineA) + _fileA.Separator + _fileB.GenerateResult(lineB);
+                            for (int i = 0; i < headers.Count; i++) { 
+                                string[] data = line.Split(',');
+                                String header = headers[i];
+                                dd[header] = data[i];
+                            }
+
+                            _resultFilePreview.Add(dd);
+
+                            if (_resultFilePreview.Count >= numOfRecords) {
+                                break;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (IOException ex) {
+                MessageBox.Show("I have an exception");
+                System.Console.Error.WriteLine("IO Error occured in " + ex.Source + Environment.NewLine
+                    + ex.Message + Environment.NewLine +
+                    "Stack Trace:" + Environment.NewLine
+                    + ex.StackTrace);
+            }
+        }
 
         //chunkSize says how many lines should be processed of the files, to avoid memory problems if sourceFiles are too big
         public void ProcessData(int chunkSize, string destination) {
@@ -81,15 +141,16 @@ namespace FileManWPF {
                 if(_fileA.HasHeader)
                     readerFileA.ReadLine();
 
-                List<string> headers = _fileA.GetResultHeaders();
-                headers.AddRange(_fileB.GetResultHeaders());
+                List<string> headers = _fileA.GetResultHeaders("A");
+                headers.AddRange(_fileB.GetResultHeaders("B"));
+                
                 string line = "";
+                if (headers.Count != 0)
+                    line = headers[0];
 
-                foreach (string s in headers) {
-                    line += s + ",";
+                for (int i = 1; i < headers.Count; i++) {
+                    line += _separator + headers[i];
                 }
-
-                line = line.Remove(line.Length - 1);
 
                     
                 StreamWriter writer = new StreamWriter(destination, true);
@@ -158,17 +219,8 @@ namespace FileManWPF {
 
 
         public void ParseAndSetIDs(string fileAID, string fileBID) {
-            setID(_fileA, fileAID);
-            setID(_fileB, fileBID);
-        }
-
-        private void setID(RawFile file, string p) {
-            String[] data = p.Split(',');
-
-            foreach (String entry in data) {
-                int n = int.Parse(entry);
-                file.IDColumnList.Add(n);
-            }
+            _fileA.parseAndSetID(fileAID);
+            _fileB.parseAndSetID(fileBID);
         }
     }
 }

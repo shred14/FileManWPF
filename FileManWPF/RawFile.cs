@@ -54,11 +54,6 @@ namespace FileManWPF {
             set { _exclusionList = value; }
         }
 
-        public List<int> IDColumnList {
-            get { return _idColumnsList; }
-            set { _idColumnsList = value; }
-        }
-
         #endregion
 
 
@@ -88,6 +83,7 @@ namespace FileManWPF {
 
         public void parseAndSetID(String s) {
             String[] data = s.Split(',');
+            _idColumnsList.Clear();
 
             foreach(String entry in data){
                 int n = int.Parse(entry);
@@ -95,12 +91,13 @@ namespace FileManWPF {
             }
         }
 
-        public List<string> GetResultHeaders() {
+        //aft is to make sure there are no conflicts between duplicate heading names
+        public List<string> GetResultHeaders(string aft) {
             List<string> result = new List<string>();
             for (int index = 0; index < _headers.Count; index++) {
                 var item = _headers.ElementAt(index);
                 if (item.Value == true) {
-                    result.Add(item.Key);
+                    result.Add(item.Key + aft);
                 }
             }
             return result;
@@ -118,6 +115,7 @@ namespace FileManWPF {
                 if (item.Value == false) {
                     result.Add(index);
                 }
+                
                 this._exclusionList = result;
             }
 
